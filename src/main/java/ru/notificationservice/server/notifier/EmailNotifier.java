@@ -11,48 +11,86 @@ import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.time.LocalDateTime;
-
-import static ru.notificationservice.utils.EmailNotifierConfig.*;
-import static ru.notificationservice.utils.NotificationProtocol.EMAIL;
-import static ru.notificationservice.utils.NotificationProtocol.MESSAGE;
+import java.util.Properties;
 
 
 public class EmailNotifier implements Job {
 
-    String message;
+    private String message;
 
-    String mailAddress;
+    private String mailAddress;
 
     private static final Logger log = LoggerFactory.getLogger(EmailNotifier.class);
 
     public EmailNotifier() {
     }
 
-    public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        JobDataMap map = jobExecutionContext.getMergedJobDataMap();
+    //Constructor for JUnit test
+    public EmailNotifier(String mailAddress, String message) {
+        this.message = message;
+        this.mailAddress = mailAddress;
+    }
 
-        mailAddress = map.getString(EMAIL);
-        message = map.getString(MESSAGE);
+    public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+        JobDataMap map = jobExecutionContext != null ?
+                jobExecutionContext.getMergedJobDataMap() : null;
 
         log.info("{} starts at {}, with message: {}", getClass(), LocalDateTime.now(), message);
 
+        File file;
+
         try {
+
+            file = new File(getClass()
+                                    .getClassLoader()
+                                    .getResource("email.properties")
+                                    .getFile());
+
+        } catch (NullPointerException e) {
+            throw new RuntimeException("Properties file is not found");
+        }
+
+        try (FileReader reader = new FileReader(file)){
+
+            Properties prop = new Properties();
+            prop.load(reader);
+
             Email email = new SimpleEmail();
-            email.setHostName(HOST_NAME);
-            email.setSmtpPort(SMTP_PORT);
-            email.setAuthenticator(new DefaultAuthenticator(USER_NAME, USER_PASSWORD));
+
+            email.setHostName(prop.getProperty("host_name"));
+            log.info("host_name={}", prop.getProperty("host_name"));
+
+
+            email.setSmtpPort(Integer.parseInt(prop.getProperty("stmp_port")));
+            log.info("stmp_port={}", prop.getProperty("stmp_port"));
+
+            email.setAuthenticator(new DefaultAuthenticator(
+                    prop.getProperty("user_name"),
+                    prop.getProperty("user_password")));
+
             email.setSSLOnConnect(true);
-            email.setFrom(EMAIL_FROM);
-            email.setSubject("TestMail");
+
+            email.setFrom(prop.getProperty("email_from"));
+            log.info("email_from={}", prop.getProperty("email_from"));
+
+            email.setSubject(prop.getProperty("subject"));
+            log.info("subject={}", prop.getProperty("subject"));
+
             email.setMsg(message);
+
             email.addTo(mailAddress);
+
             email.send();
+
+        } catch (IOException e) {
+            log.error("IOException");
         } catch (EmailException e) {
             log.error("Error sending email");
             throw new JobExecutionException(e.getMessage());
-        } finally {
-
         }
 
         log.info("Message sent");

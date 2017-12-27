@@ -1,7 +1,6 @@
 package ru.notificationservice.server.notifier;
 
 import org.quartz.Job;
-import org.quartz.JobDataMap;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
@@ -12,27 +11,23 @@ import java.io.DataOutputStream;
 import java.net.URL;
 import java.time.LocalDateTime;
 
-import static ru.notificationservice.utils.NotificationProtocol.MESSAGE;
-import static ru.notificationservice.utils.NotificationProtocol.URL;
-
-//import java.net.HttpURLConnection;
 
 public class HttpNotifier implements Job {
 
     private static final Logger log = LoggerFactory.getLogger(HttpNotifier.class);
 
-    String message;
+    private String message;
 
-    String targetURL;
+    private String targetURL;
 
     public HttpNotifier() {
     }
 
     public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
-        JobDataMap map = jobExecutionContext.getMergedJobDataMap();
+//        JobDataMap map = jobExecutionContext.getMergedJobDataMap();
 
-        message = map.getString(MESSAGE);
-        targetURL = map.getString(URL);
+//        message = map.getString(MESSAGE);
+//        targetURL = map.getString(URL);
 
         log.info("{} starts at {}, with message: {}", getClass(), LocalDateTime.now(), message);
 
